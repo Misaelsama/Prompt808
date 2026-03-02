@@ -319,7 +319,7 @@ if _HAS_PROMPT_SERVER:
 
     @routes.post("/prompt808/api/analyze")
     async def analyze_photo(request):
-        """Analyze a photo and extract photographic elements."""
+        """Analyze a photo and extract photographic elements (SSE streaming)."""
         _get_library(request)
         from .core import library_manager
 
@@ -364,16 +364,50 @@ if _HAS_PROMPT_SERVER:
             return web.Response(status=400, text=f"Unsupported format '{suffix}'. Use: {SUPPORTED_FORMATS}")
 
         thumbnails_dir = library_manager.get_thumbnails_dir()
+
+        resp = web.StreamResponse(
+            status=200, reason="OK",
+            headers={
+                "Content-Type": "text/event-stream",
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+            },
+        )
+        await resp.prepare(request)
+
+        progress_queue = asyncio.Queue()
+        loop = asyncio.get_event_loop()
+
+        def progress_cb(message):
+            loop.call_soon_threadsafe(progress_queue.put_nowait, message)
+
         try:
-            result = await asyncio.to_thread(
+            task = asyncio.create_task(asyncio.to_thread(
                 _run_analysis, image_data, image_filename, suffix,
                 thumbnails_dir, vision_model, quantization, device,
-                attention_mode, max_tokens, force,
-            )
-            return web.json_response(result)
+                attention_mode, max_tokens, force, progress_cb,
+            ))
+
+            while not task.done():
+                try:
+                    msg = await asyncio.wait_for(progress_queue.get(), timeout=0.3)
+                    await _sse_write(resp, "progress", {"message": msg})
+                except asyncio.TimeoutError:
+                    continue
+
+            # Drain any remaining progress messages
+            while not progress_queue.empty():
+                msg = progress_queue.get_nowait()
+                await _sse_write(resp, "progress", {"message": msg})
+
+            result = task.result()
+            await _sse_write(resp, "result", result)
         except Exception as e:
             log.error("Analysis failed: %s", e, exc_info=True)
-            return web.Response(status=500, text=f"Analysis failed: {e}")
+            await _sse_write(resp, "error", {"message": str(e)})
+
+        await resp.write_eof()
+        return resp
 
     @routes.post("/prompt808/api/analyze/cleanup")
     async def analysis_cleanup(request):
@@ -914,10 +948,12 @@ async def _sse_write(resp, event, data):
 
 def _run_analysis(image_data, image_filename, suffix, thumbnails_dir,
                   vision_model, quantization, device, attention_mode,
-                  max_tokens, force):
+                  max_tokens, force, progress_cb=None):
     """Run the full analysis pipeline (in thread pool)."""
+    _progress = progress_cb or (lambda msg: None)
     tmp_path = None
     try:
+        _progress("Preparing...")
         with tempfile.NamedTemporaryFile(
             dir=thumbnails_dir, suffix=suffix, delete=False
         ) as tmp:
@@ -932,6 +968,7 @@ def _run_analysis(image_data, image_filename, suffix, thumbnails_dir,
 
         from .core import image_embeddings
         if not force:
+            _progress("Checking for duplicates...")
             is_dup, match_hash, similarity = image_embeddings.is_duplicate_photo(
                 tmp_path, content_hash
             )
@@ -955,8 +992,10 @@ def _run_analysis(image_data, image_filename, suffix, thumbnails_dir,
             device=device,
             attention_mode=attention_mode,
             max_tokens=max_tokens,
+            progress_cb=_progress,
         )
 
+        _progress("Saving results...")
         thumbnail_name = _create_thumbnail(tmp_path, image_filename, content_hash)
         analysis_result["thumbnail"] = thumbnail_name
 

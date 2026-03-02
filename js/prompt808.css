@@ -676,6 +676,37 @@ dialog.p8-dialog::backdrop {
 }
 .p8-add-more:hover { border-color: var(--p8-accent); filter: brightness(125%); }
 
+.p8-preview-analyzing::after {
+  content: "";
+  position: absolute;
+  top: 0; left: 0;
+  width: 90px;
+  height: 70px;
+  background: rgba(0, 0, 0, 0.5);
+  border-radius: var(--p8-radius);
+}
+.p8-preview-analyzing::before {
+  content: "";
+  position: absolute;
+  top: 23px;
+  left: 33px;
+  width: 24px;
+  height: 24px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: var(--p8-accent);
+  border-radius: 50%;
+  animation: p8-spin 0.6s linear infinite;
+  z-index: 1;
+}
+
+.p8-phase-text {
+  text-align: center;
+  font-size: 11px;
+  color: var(--p8-text-muted);
+  min-height: 16px;
+  margin-top: 4px;
+}
+
 .p8-file-actions {
   display: flex;
   align-items: center;

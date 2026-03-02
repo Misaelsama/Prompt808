@@ -211,7 +211,8 @@ def _extract_elements(image_path, vision_model_manager, prompt, max_tokens=2048)
 
 
 def analyze_photo(image_path, vision_model_manager, quantization="FP8",
-                  device="auto", attention_mode="auto", max_tokens=2048):
+                  device="auto", attention_mode="auto", max_tokens=2048,
+                  progress_cb=None):
     """Analyze an image and extract elements.
 
     Runs medium detection first, then photo-style extraction (always), then
@@ -224,6 +225,7 @@ def analyze_photo(image_path, vision_model_manager, quantization="FP8",
         device: Device to run inference on.
         attention_mode: Attention implementation.
         max_tokens: Maximum tokens for generation.
+        progress_cb: Optional callable(str) for reporting progress phases.
 
     Returns:
         dict with keys:
@@ -235,10 +237,14 @@ def analyze_photo(image_path, vision_model_manager, quantization="FP8",
             is_photograph: bool
             status: str describing the outcome
     """
+    _progress = progress_cb or (lambda msg: None)
+
     # Step 1: Detect medium
+    _progress("Detecting medium...")
     medium_info = detect_medium(image_path, vision_model_manager)
 
     # Step 2: Photo extraction (always runs — unchanged)
+    _progress("Extracting elements...")
     photo_prompt = EXTRACTION_PROMPT.format(tag_format_guide=TAG_FORMAT_GUIDE)
     subject_type, raw_elements = _extract_elements(
         image_path, vision_model_manager, photo_prompt, max_tokens
@@ -265,6 +271,7 @@ def analyze_photo(image_path, vision_model_manager, quantization="FP8",
     native_normalized = []
     native_raw = []
     if not medium_info.get("is_photograph", True):
+        _progress("Extracting native elements...")
         medium_name = medium_info.get("medium", "image")
         native_prompt = NATIVE_EXTRACTION_PROMPT.format(
             medium=medium_name, tag_format_guide=TAG_FORMAT_GUIDE,

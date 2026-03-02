@@ -126,23 +126,6 @@ function _renderLibSwitcher() {
   const select = $el("select.p8-lib-select", {
     onChange: async (e) => {
       const val = e.target.value;
-      if (val === "__new__") {
-        const name = prompt("New library name:");
-        if (!name?.trim()) { select.value = _libraryState.active; return; }
-        try {
-          await api.createLibrary(name.trim());
-          await api.switchLibrary(name.trim());
-          api.setActiveLibrary(name.trim());
-          toast(`Library "${name.trim()}" created`, "success");
-          await refreshLibraries();
-          invalidateData();
-          _switchTab(_activeTab);
-        } catch (err) {
-          toast("Create failed: " + err.message, "error");
-          select.value = _libraryState.active;
-        }
-        return;
-      }
       if (val === _libraryState.active) return;
       try {
         await api.switchLibrary(val);
@@ -156,18 +139,36 @@ function _renderLibSwitcher() {
         toast("Switch failed: " + err.message, "error");
       }
     },
-  }, [
-    ...libs.map(lib =>
-      $el("option", {
-        value: lib.name,
-        textContent: `${lib.name} (${lib.element_count || 0})`,
-        selected: lib.active,
-      })
-    ),
-    $el("option", { value: "__new__", textContent: "+ New Library" }),
-  ]);
+  }, libs.map(lib =>
+    $el("option", {
+      value: lib.name,
+      textContent: `${lib.name} (${lib.element_count || 0})`,
+      selected: lib.active,
+    })
+  ));
 
   _libSwitcher.appendChild(select);
+
+  // New library button
+  _libSwitcher.appendChild($el("button.p8-lib-action", {
+    textContent: "+",
+    title: "New library",
+    onClick: async () => {
+      const name = prompt("New library name:");
+      if (!name?.trim()) return;
+      try {
+        await api.createLibrary(name.trim());
+        await api.switchLibrary(name.trim());
+        api.setActiveLibrary(name.trim());
+        toast(`Library "${name.trim()}" created`, "success");
+        await refreshLibraries();
+        invalidateData();
+        _switchTab(_activeTab);
+      } catch (err) {
+        toast("Create failed: " + err.message, "error");
+      }
+    },
+  }));
 
   // Rename button
   _libSwitcher.appendChild($el("button.p8-lib-action", {

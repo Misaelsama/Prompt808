@@ -83,11 +83,11 @@ Generation results from the node are automatically pushed to the sidebar's Gener
 
 ### 6. Multi-library workflow
 
-Use the library dropdown at the top of the sidebar or in the node to:
+Use the library dropdown and action buttons at the top of the sidebar to:
 
 - **Switch** between libraries (each has its own elements, archetypes, style profiles, and dedup caches)
-- **Create** new libraries for different projects or genres
-- **Rename** or **delete** libraries
+- **Create** new libraries with the **+** button
+- **Rename**, **delete**, **export**, or **import** libraries
 
 Libraries are fully isolated — the same image can exist in different libraries with different extracted elements.
 

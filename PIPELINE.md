@@ -816,7 +816,7 @@ All endpoints are registered on ComfyUI's PromptServer under `/prompt808/api/*`.
 
 | Method | Endpoint                         | Description                                                                                                                              |
 | ------ | -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| POST   | `/prompt808/api/analyze`         | Upload an image for analysis. Multipart form: `image`, `vision_model`, `quantization`, `device`, `attention_mode`, `max_tokens`, `force` |
+| POST   | `/prompt808/api/analyze`         | Upload an image for analysis (SSE streaming). Multipart form: `image`, `vision_model`, `quantization`, `device`, `attention_mode`, `max_tokens`, `force`. Returns SSE `progress` events with phase updates and a final `result` event |
 | GET    | `/prompt808/api/analyze/options` | Available vision models and quantization options                                                                                         |
 | POST   | `/prompt808/api/analyze/cleanup` | Unload analysis models (vision, CLIP, sentence-transformer) to free VRAM                                                                 |
 

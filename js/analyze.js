@@ -25,7 +25,7 @@ let _maxTokens = Number(localStorage.getItem("sf_maxTokens")) || 2048;
 let _force = false;
 let _options = null;
 
-let _dropzoneEl, _fileActionsEl, _settingsEl, _btnRowEl, _progressEl, _historyEl, _fileInput;
+let _dropzoneEl, _fileActionsEl, _settingsEl, _btnRowEl, _progressEl, _phaseEl, _historyEl, _fileInput;
 
 function _hasLibrary() {
   return !!getLibraryState().active;
@@ -48,7 +48,7 @@ export function render(container) {
         "Drop, paste, or browse for images to extract visual elements. Each photo is sent to a local vision model that identifies subjects, lighting, color palette, composition, mood, textures, and more.",
         "Extracted elements are automatically categorized and added to your element library. Duplicate detection prevents the same element from being added twice — use the \"Skip duplicate check\" option to force re-analysis.",
         "Vision Model Settings lets you choose which model analyzes your photos and at what precision. Larger models extract richer detail but need more VRAM. Quantization (FP8, 8-bit, 4-bit) reduces VRAM usage at the cost of some quality.",
-        "You can queue multiple images at once — they are processed sequentially with a progress bar. Results appear in the Analysis Results section below as each image completes.",
+        "You can queue multiple images at once — they are processed sequentially with a progress bar and live status updates showing the current analysis phase. The image being processed is highlighted with a spinner overlay. Results appear in the Analysis Results section below as each image completes.",
       ], { marginLeft: "auto" }),
     ]),
     _dropzoneEl = _hasLibrary()
@@ -64,6 +64,7 @@ export function render(container) {
     _settingsEl = $el("div"),
     _btnRowEl = $el("div"),
     _progressEl = $el("div"),
+    _phaseEl = $el("div.p8-phase-text"),
     _historyEl = $el("div"),
   ]);
 
@@ -76,7 +77,7 @@ export function render(container) {
   api.getAnalyzeOptions().then(opts => { _options = opts; _renderSettings(); }).catch(() => {});
 
   // Paste listener — remove old one first to avoid duplicates on re-render
-  if (_pasteHandler) document.removeEventListener("paste", _pasteHandler);
+  if (_pasteHandler) document.removeEventListener("paste", _pasteHandler, true);
   _pasteHandler = (e) => {
     // Only intercept when the Analyze tab is visible and a library is active
     if (!_container || !_container.offsetParent) return;
@@ -102,6 +103,7 @@ export function render(container) {
 let _pasteHandler = null;
 
 export function onDataVersionChanged() {
+  if (_analyzing) return;
   _history = [];
   if (_historyEl) _renderHistory();
 }
@@ -196,7 +198,7 @@ function _renderDropzone() {
       $el("strong", { textContent: "Create a library to get started", style: { fontSize: "14px", color: "var(--p8-text)" } }),
       $el("p", {
         style: { fontSize: "12px", color: "var(--p8-text-muted)", margin: "0", textAlign: "center", lineHeight: "1.6" },
-        innerHTML: 'Click the <strong>+ Create Your First Library</strong> button at the top of this panel.<br>Name your library, then come back here to analyze your photos.',
+        innerHTML: 'Click the <strong>+ Create Your First Library</strong> button at the top of this panel.<br>Name your library, then come back here to analyze photos.',
       }),
     ]));
     return;
@@ -327,6 +329,10 @@ function _renderProgress() {
   ]));
 }
 
+function _renderPhase(msg) {
+  _phaseEl.textContent = msg || "";
+}
+
 function _renderHistory() {
   _historyEl.innerHTML = "";
   if (_history.length === 0) return;
@@ -382,6 +388,10 @@ async function _handleAnalyze() {
     _renderProgress();
     const file = toProcess[i];
 
+    // Mark the first thumbnail as currently being analyzed
+    const firstItem = _dropzoneEl.querySelector(".p8-preview-item");
+    if (firstItem) firstItem.classList.add("p8-preview-analyzing");
+
     try {
       const formData = new FormData();
       formData.append("image", file);
@@ -390,7 +400,7 @@ async function _handleAnalyze() {
       formData.append("max_tokens", String(_maxTokens));
       if (_force) formData.append("force", "true");
 
-      const result = await api.analyzePhoto(formData);
+      const result = await api.analyzePhoto(formData, (msg) => _renderPhase(msg));
       totalAdded += result.elements_added;
       totalDupes += result.duplicates_rejected;
       succeeded++;
@@ -411,6 +421,8 @@ async function _handleAnalyze() {
       });
     }
 
+    _renderPhase("");
+
     // Remove processed file
     if (_previews.length > 0) URL.revokeObjectURL(_previews[0]?.url);
     _files.shift();
@@ -428,6 +440,7 @@ async function _handleAnalyze() {
   _batchTotal = 0;
   _renderBtnRow();
   _renderProgress();
+  _renderPhase("");
 
   if (!wasCancelled) {
     api.analysisCleanup().catch(() => {});

@@ -40,7 +40,7 @@ export function checkHealth() {
 
 // ---- Analysis ----
 
-export async function analyzePhoto(formData) {
+export async function analyzePhoto(formData, onProgress) {
   const headers = {};
   if (_activeLibrary) headers["X-Library"] = _activeLibrary;
   const res = await fetch(`${BASE}/analyze`, {
@@ -52,7 +52,32 @@ export async function analyzePhoto(formData) {
     const body = await res.text();
     throw new Error(`${res.status}: ${body}`);
   }
-  return res.json();
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = "";
+  let result = null;
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const parts = buffer.split("\n\n");
+    buffer = parts.pop();
+    for (const part of parts) {
+      let type, data;
+      for (const line of part.split("\n")) {
+        if (line.startsWith("event:")) type = line.slice(6);
+        if (line.startsWith("data:")) data = JSON.parse(line.slice(5));
+      }
+      if (type === "progress" && onProgress) onProgress(data.message);
+      else if (type === "result") result = data;
+      else if (type === "error") throw new Error(data.message);
+    }
+  }
+
+  if (!result) throw new Error("No result received from analysis");
+  return result;
 }
 
 export function getAnalyzeOptions() {
