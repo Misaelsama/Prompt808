@@ -1,0 +1,26 @@
+[project]
+name = "prompt808"
+description = "Prompt808 is a ComfyUI node that learns from your images and generates prompts matching your visual style"
+version = "1.0.5"
+license = {file = "LICENSE"}
+dependencies = [
+    "transformers",
+    "torch",
+    "huggingface-hub",
+    "accelerate",
+    "bitsandbytes",
+    "psutil",
+    "sentence-transformers",
+    "scikit-learn",
+    "python-multipart",
+    "Pillow",
+]
+
+[project.urls]
+Repository = "https://github.com/Machete3000/Prompt808"
+Homepage = "https://prompt808.com"
+
+[tool.comfy]
+PublisherId = "machete3000"
+DisplayName = "Prompt808"
+Icon = "camera"

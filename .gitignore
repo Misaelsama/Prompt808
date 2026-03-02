@@ -1,0 +1,52 @@
+# User data (built from photo analysis, unique per user)
+user_data/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Environment
+.env
+.venv/
+venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Debug logs
+llm_debug.log
+
+# Internal dev notes
+FEEDBACK*.md
+CLAUDE.md
+SceneForgev2_planning.md
+start.bat
+start.sh
+
+# Claude Code
+.claude/
+
+# Temp
+tmp/
+
+# Test output artifacts
+tests/output/
+
+# OS
+Thumbs.db
+.DS_Store
+NUL
+
+# Frontend source (standalone dev tool, not part of the ComfyUI node)
+frontend/
+
+# Build artifacts
+node.zip

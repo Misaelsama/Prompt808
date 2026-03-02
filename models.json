@@ -1,0 +1,275 @@
+{
+  "_comment": "Prompt808 model registry. Text models for composition + QwenVL vision models for analysis.",
+  "text_models": {
+    "Qwen3-0.6B": {
+      "repo_id": "Qwen/Qwen3-0.6B",
+      "default": true,
+      "quantized": false,
+      "vram_requirement": {
+        "full": 1.5,
+        "8bit": 1.0,
+        "4bit": 0.7
+      }
+    },
+    "Qwen3-0.6B-FP8": {
+      "repo_id": "Qwen/Qwen3-0.6B-FP8",
+      "default": false,
+      "quantized": true,
+      "vram_requirement": {
+        "full": 0.8,
+        "8bit": 0.8,
+        "4bit": 0.8
+      }
+    },
+    "Qwen3-1.7B": {
+      "repo_id": "Qwen/Qwen3-1.7B",
+      "default": false,
+      "quantized": false,
+      "vram_requirement": {
+        "full": 3.5,
+        "8bit": 2.2,
+        "4bit": 1.3
+      }
+    },
+    "Qwen3-1.7B-FP8": {
+      "repo_id": "Qwen/Qwen3-1.7B-FP8",
+      "default": false,
+      "quantized": true,
+      "vram_requirement": {
+        "full": 1.8,
+        "8bit": 1.8,
+        "4bit": 1.8
+      }
+    },
+    "Qwen3-4B": {
+      "repo_id": "Qwen/Qwen3-4B",
+      "default": false,
+      "quantized": false,
+      "vram_requirement": {
+        "full": 8.5,
+        "8bit": 4.5,
+        "4bit": 2.8
+      }
+    },
+    "Qwen3-4B-FP8": {
+      "repo_id": "Qwen/Qwen3-4B-FP8",
+      "default": false,
+      "quantized": true,
+      "vram_requirement": {
+        "full": 4.5,
+        "8bit": 4.5,
+        "4bit": 4.5
+      }
+    },
+    "Qwen3-8B": {
+      "repo_id": "Qwen/Qwen3-8B",
+      "default": false,
+      "quantized": false,
+      "vram_requirement": {
+        "full": 17.0,
+        "8bit": 9.0,
+        "4bit": 5.5
+      }
+    },
+    "Qwen3-8B-FP8": {
+      "repo_id": "Qwen/Qwen3-8B-FP8",
+      "default": false,
+      "quantized": true,
+      "vram_requirement": {
+        "full": 9.0,
+        "8bit": 9.0,
+        "4bit": 9.0
+      }
+    },
+    "Qwen3-8B-Abliterated": {
+      "repo_id": "mlabonne/Qwen3-8B-abliterated",
+      "default": false,
+      "quantized": false,
+      "vram_requirement": {
+        "full": 17.0,
+        "8bit": 9.0,
+        "4bit": 5.5
+      }
+    },
+    "Qwen3-8B-Abliterated-v2": {
+      "repo_id": "huihui-ai/Huihui-Qwen3-8B-abliterated-v2",
+      "default": false,
+      "quantized": false,
+      "vram_requirement": {
+        "full": 17.0,
+        "8bit": 9.0,
+        "4bit": 5.5
+      }
+    },
+    "Qwen3-8B-Abliterated-FP8": {
+      "repo_id": "ikarius/Qwen3-8B-Abliterated-FP8",
+      "default": false,
+      "quantized": true,
+      "vram_requirement": {
+        "full": 9.0,
+        "8bit": 9.0,
+        "4bit": 9.0
+      }
+    },
+    "Qwen3-32B": {
+      "repo_id": "Qwen/Qwen3-32B",
+      "default": false,
+      "quantized": false,
+      "vram_requirement": {
+        "full": 64.0,
+        "8bit": 32.0,
+        "4bit": 18.0
+      }
+    },
+    "Qwen3-32B-FP8": {
+      "repo_id": "Qwen/Qwen3-32B-FP8",
+      "default": false,
+      "quantized": true,
+      "vram_requirement": {
+        "full": 34.0,
+        "8bit": 34.0,
+        "4bit": 34.0
+      }
+    },
+    "Qwen2.5-3B-Instruct": {
+      "repo_id": "Qwen/Qwen2.5-3B-Instruct",
+      "default": false,
+      "quantized": false,
+      "vram_requirement": {
+        "full": 6.0,
+        "8bit": 3.5,
+        "4bit": 2.0
+      }
+    },
+    "Qwen2.5-7B-Instruct": {
+      "repo_id": "Qwen/Qwen2.5-7B-Instruct",
+      "default": false,
+      "quantized": false,
+      "vram_requirement": {
+        "full": 15.0,
+        "8bit": 8.5,
+        "4bit": 5.0
+      }
+    },
+    "Qwen2.5-14B-Instruct": {
+      "repo_id": "Qwen/Qwen2.5-14B-Instruct",
+      "default": false,
+      "quantized": false,
+      "vram_requirement": {
+        "full": 28.0,
+        "8bit": 14.0,
+        "4bit": 8.5
+      }
+    },
+    "Qwen2.5-32B-Instruct": {
+      "repo_id": "Qwen/Qwen2.5-32B-Instruct",
+      "default": false,
+      "quantized": false,
+      "vram_requirement": {
+        "full": 64.0,
+        "8bit": 32.0,
+        "4bit": 18.0
+      }
+    }
+  },
+  "vision_models": {
+    "Qwen3-VL-8B-Instruct": {
+      "repo_id": "Qwen/Qwen3-VL-8B-Instruct",
+      "default": true,
+      "quantized": false,
+      "min_analysis_model": true,
+      "vram_requirement": {
+        "full": 12.0,
+        "8bit": 7.0,
+        "4bit": 4.5
+      }
+    },
+    "Qwen3-VL-8B-Instruct-abliterated": {
+      "repo_id": "huihui-ai/Huihui-Qwen3-VL-8B-Instruct-abliterated",
+      "default": false,
+      "quantized": false,
+      "min_analysis_model": true,
+      "vram_requirement": {
+        "full": 12.0,
+        "8bit": 7.0,
+        "4bit": 4.5
+      }
+    },
+    "Qwen3-VL-8B-Instruct-abliterated-v2": {
+      "repo_id": "prithivMLmods/Qwen3-VL-8B-Instruct-abliterated-v2",
+      "default": false,
+      "quantized": false,
+      "min_analysis_model": true,
+      "vram_requirement": {
+        "full": 12.0,
+        "8bit": 7.0,
+        "4bit": 4.5
+      }
+    },
+    "Qwen3-VL-8B-Instruct-FP8": {
+      "repo_id": "Qwen/Qwen3-VL-8B-Instruct-FP8",
+      "default": false,
+      "quantized": true,
+      "min_analysis_model": true,
+      "vram_requirement": {
+        "full": 7.5
+      }
+    },
+    "Qwen3-VL-32B-Instruct": {
+      "repo_id": "Qwen/Qwen3-VL-32B-Instruct",
+      "default": false,
+      "quantized": false,
+      "preferred_analysis_model": true,
+      "vram_requirement": {
+        "full": 28.0,
+        "8bit": 14.0,
+        "4bit": 8.5
+      }
+    },
+    "Qwen3-VL-32B-Instruct-FP8": {
+      "repo_id": "Qwen/Qwen3-VL-32B-Instruct-FP8",
+      "default": false,
+      "quantized": true,
+      "preferred_analysis_model": true,
+      "vram_requirement": {
+        "full": 24.0
+      }
+    },
+    "Qwen3-VL-8B-Thinking": {
+      "repo_id": "Qwen/Qwen3-VL-8B-Thinking",
+      "default": false,
+      "quantized": false,
+      "vram_requirement": {
+        "full": 12.0,
+        "8bit": 7.0,
+        "4bit": 4.5
+      }
+    },
+    "Qwen3-VL-8B-Thinking-FP8": {
+      "repo_id": "Qwen/Qwen3-VL-8B-Thinking-FP8",
+      "default": false,
+      "quantized": true,
+      "vram_requirement": {
+        "full": 7.5
+      }
+    },
+    "Qwen3-VL-32B-Thinking": {
+      "repo_id": "Qwen/Qwen3-VL-32B-Thinking",
+      "default": false,
+      "quantized": false,
+      "vram_requirement": {
+        "full": 28.0,
+        "8bit": 14.0,
+        "4bit": 8.5
+      }
+    },
+    "Qwen3-VL-32B-Thinking-FP8": {
+      "repo_id": "Qwen/Qwen3-VL-32B-Thinking-FP8",
+      "default": false,
+      "quantized": true,
+      "vram_requirement": {
+        "full": 24.0
+      }
+    }
+  }
+}

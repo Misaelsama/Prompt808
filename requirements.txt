@@ -1,0 +1,21 @@
+# Core ML / LLM
+transformers
+torch
+huggingface-hub
+accelerate
+bitsandbytes
+psutil
+
+# Embeddings
+sentence-transformers
+scikit-learn
+
+# Image processing
+python-multipart
+Pillow
+
+# Web server (standalone mode only — not needed under ComfyUI)
+# fastapi
+# uvicorn[standard]
+# pydantic
+# sse-starlette
