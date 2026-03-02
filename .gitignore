@@ -45,6 +45,12 @@ Thumbs.db
 .DS_Store
 NUL
 
+# Dev-only files (never push to GitHub)
+tests/
+pytest.ini
+__main__.py
+server/app.py
+
 # Frontend source (standalone dev tool, not part of the ComfyUI node)
 frontend/
 
