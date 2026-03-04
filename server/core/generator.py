@@ -245,7 +245,7 @@ def generate_prompt(seed, archetype_id="Any", style="Any", mood="Any",
                     model_name=None, quantization="FP16", enrichment="Vivid",
                     temperature=0.7, max_tokens=1024,
                     model_manager=None, element_store=None, archetype_store=None,
-                    style_profile_module=None, debug=False):
+                    style_profile_module=None, debug=False, nsfw=False):
     """Generate a photography prompt from the element library.
 
     Args:
@@ -272,6 +272,8 @@ def generate_prompt(seed, archetype_id="Any", style="Any", mood="Any",
     """
     # Resolve "Any" style to a concrete one using the seed
     all_styles = PHOTO_STYLES + ["Native"]
+    if not nsfw:
+        all_styles = [s for s in all_styles if s not in ("Boudoir", "Erotica")]
     if style == "Any" or style not in STYLE_INSTRUCTIONS:
         style_rng = random.Random(seed)
         style = style_rng.choice(all_styles)

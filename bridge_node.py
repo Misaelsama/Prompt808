@@ -276,6 +276,22 @@ class Prompt808Generate:
         if pbar:
             pbar.update_absolute(0, 4)
 
+        # Read NSFW setting so generator excludes adult styles from "Any"
+        nsfw = False
+        try:
+            from .server.core import database
+        except ImportError:
+            from server.core import database
+        try:
+            db = database.get_db()
+            row = db.execute(
+                "SELECT value FROM generate_settings WHERE key='app'"
+            ).fetchone()
+            if row and row["value"]:
+                nsfw = json.loads(row["value"]).get("nsfw", False)
+        except Exception as e:
+            log.warning("Failed to read NSFW setting: %s", e)
+
         result = generator.generate_prompt(
             seed=seed,
             archetype_id=archetype,
@@ -291,6 +307,7 @@ class Prompt808Generate:
             archetype_store=archetypes,
             style_profile_module=style_profile,
             debug=False,
+            nsfw=nsfw,
         )
         result["seed"] = seed
 
