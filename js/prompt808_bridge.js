@@ -27,6 +27,39 @@ app.registerExtension({
       _refreshControllers.delete(this);
       origOnRemoved?.apply(this, arguments);
     };
+
+    // Hide library dropdown when Library Select node is connected
+    const origOnConnectionsChange = nodeType.prototype.onConnectionsChange;
+    nodeType.prototype.onConnectionsChange = function (type, slotIndex, isConnected, linkInfo) {
+      origOnConnectionsChange?.apply(this, arguments);
+      if (type !== LiteGraph.INPUT) return;
+      const input = this.inputs?.[slotIndex];
+      if (!input || input.name !== "libraries") return;
+      const libWidget = this.widgets?.find((w) => w.name === "library");
+      if (!libWidget) return;
+      if (isConnected) {
+        hideWidget(this, libWidget);
+      } else {
+        showWidget(libWidget);
+      }
+      this.setSize(this.computeSize());
+      this.setDirtyCanvas(true, true);
+    };
+
+    // On configure (workflow load), sync library widget visibility to actual connection state
+    const origConfigure = nodeType.prototype.configure;
+    nodeType.prototype.configure = function (info) {
+      origConfigure?.apply(this, arguments);
+      const libInput = this.inputs?.find((inp) => inp.name === "libraries");
+      const libWidget = this.widgets?.find((w) => w.name === "library");
+      if (!libWidget) return;
+      const connected = libInput && libInput.link != null;
+      if (connected) {
+        hideWidget(this, libWidget);
+      } else {
+        showWidget(libWidget);
+      }
+    };
   },
 
   async nodeCreated(node) {
@@ -45,6 +78,28 @@ document.addEventListener("prompt808:options-changed", () => {
     refreshDropdowns(node);
   }
 });
+
+// ------------------------------------------------------------------
+// Widget hide/show helpers (standard ComfyUI converted-widget pattern)
+// ------------------------------------------------------------------
+
+const CONVERTED_TYPE = "converted-widget";
+
+function hideWidget(node, widget) {
+  if (widget.type === CONVERTED_TYPE) return; // already hidden
+  widget._origType = widget.type;
+  widget._origComputeSize = widget.computeSize;
+  widget.type = CONVERTED_TYPE;
+  widget.computeSize = () => [0, -4];
+  widget.hidden = true;
+}
+
+function showWidget(widget) {
+  if (widget.type !== CONVERTED_TYPE) return; // already visible
+  widget.type = widget._origType || "combo";
+  widget.computeSize = widget._origComputeSize || undefined;
+  widget.hidden = false;
+}
 
 /**
  * Watch the library widget for changes and refresh archetypes accordingly.
@@ -156,8 +211,8 @@ async function refreshDropdowns(node) {
         const libWidget2 = node.widgets?.find((w) => w.name === "library");
         if (libWidget2) {
           const prev = libWidget2.value;
-          const names = libs.map((l) => l.name);
-          const activeName = libs.find((l) => l.active)?.name || names[0];
+          const names = ["All", ...libs.map((l) => l.name)];
+          const activeName = libs.find((l) => l.active)?.name || names[1];
           libWidget2.options.values = names;
           libWidget2.value = names.includes(prev) ? prev : activeName;
         }

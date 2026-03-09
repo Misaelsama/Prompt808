@@ -32,10 +32,6 @@ _EXPORT_TABLES = {
         "json_columns": {"patterns"},
         "bool_columns": set(),
     },
-    "prompt_cache": {
-        "json_columns": set(),
-        "bool_columns": set(),
-    },
 }
 
 
@@ -73,6 +69,11 @@ def handle_export(library_name, include_thumbnails=True):
         for r in rows:
             d = dict(r)
             d.pop("library_id", None)
+            d.pop("source_photo", None)
+            d.pop("added", None)
+            d.pop("generated", None)
+            d.pop("count", None)
+            d.pop("last_updated", None)
 
             # Parse JSON TEXT columns back to native objects
             for col in config["json_columns"]:

@@ -322,7 +322,7 @@ def load_model(model_name, quantization="FP16", device="auto", attention_mode="a
                     int(est_gb * 1024**3),
                     comfy.model_management.get_torch_device(),
                 )
-                log.info("Asked ComfyUI to free ~%.1fGB VRAM", est_gb)
+                log.debug("Asked ComfyUI to free ~%.1fGB VRAM", est_gb)
         except ImportError:
             pass
 

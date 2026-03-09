@@ -183,14 +183,9 @@ def _create_thumbnail(image_path, original_filename, content_hash):
     """Create a 512px max JPEG thumbnail and return its filename."""
     from PIL import Image
 
-    # Generate stable filename: {stem}_{hash8}.jpg
-    stem = Path(original_filename).stem
-    # Sanitize stem — keep only alphanumeric, dash, underscore
-    stem = "".join(c if c.isalnum() or c in "-_" else "_" for c in stem).strip("_")
-    if not stem:
-        stem = "photo"
+    # Generate stable filename from content hash only (no original filename)
     hash8 = content_hash[:8]
-    thumb_name = f"{stem}_{hash8}.jpg"
+    thumb_name = f"{hash8}.jpg"
     thumb_path = library_manager.get_thumbnails_dir() / thumb_name
 
     try:

@@ -32,7 +32,9 @@ This document explains in detail how Prompt808 analyzes images and generates pro
   - [4. Prompt Composition](#4-prompt-composition)
   - [5. Negative Prompt Assembly](#5-negative-prompt-assembly)
   - [6. Cache Storage & WebSocket Broadcast](#6-cache-storage--websocket-broadcast)
+- [Multi-Library Generation](#multi-library-generation)
 - [Style Profiles](#style-profiles)
+- [Library Export & Import](#library-export--import)
 - [Models & Embedding Layers](#models--embedding-layers)
 - [Data Flow Diagram](#data-flow-diagram)
 
@@ -43,7 +45,7 @@ This document explains in detail how Prompt808 analyzes images and generates pro
 Prompt808 operates as two distinct pipelines that share a common element library:
 
 1. **Analysis pipeline** — Takes an image, detects its artistic medium, extracts structured elements via the appropriate pipeline (photography or native), deduplicates, normalizes, and stores them.
-2. **Generation pipeline** — Takes a seed + parameters, selects elements from the library, and composes a natural-language prompt via LLM rewriting or style-differentiated concatenation.
+2. **Generation pipeline** — Takes a seed + parameters, selects elements from the library, and composes a natural-language prompt via LLM rewriting or style-differentiated concatenation. Supports multi-library generation — combining elements from multiple libraries into a single merged pool.
 
 The library grows with each analyzed image. Elements are grouped into **archetypes** (scene-type clusters like "Studio Side Light" or "Beach Golden Hour") that act as coherent element pools for generation.
 
@@ -428,7 +430,7 @@ Optional LLM naming can override this with a 3-5 word creative name.
 
 ## Prompt Generation Pipeline
 
-Entry point: `bridge_node.py` (ComfyUI node execution)
+Entry point: `bridge_node.py` (Generate Prompt node) or `library_select_node.py` (Select Libraries node)
 Core logic: `server/core/generator.py`
 
 ### 1. Cache Lookup
@@ -611,6 +613,55 @@ Return prompt + negative + metadata
 
 ---
 
+## Multi-Library Generation
+
+**Modules:** `bridge_node.py`, `library_select_node.py`, `js/prompt808_library_select.js`
+
+Generation can draw elements from multiple libraries simultaneously, creating a virtual merged pool that multiplies the combinatorial space.
+
+### Activation
+
+There are two ways to enable multi-library generation:
+
+1. **"All" option** — Select "All" in the Generate Prompt node's library dropdown. Resolves to all libraries via `library_manager.list_libraries()`.
+2. **Select Libraries node** — A dedicated node (`library_select_node.py`) with dynamic library slots. Each slot has an on/off toggle and a library dropdown. Outputs a `P808_LIBRARIES` list that connects to the Generate Prompt node's `libraries` input. When connected, the library dropdown on the Generate node is automatically hidden.
+
+### Library Resolution
+
+`bridge_node._resolve_libraries()` determines which libraries to use, with this priority:
+
+1. **Library Select node connected** — uses the list from the `libraries` input, validates each name exists
+2. **"All" selected** — resolves to all library names
+3. **Single library** — uses the dropdown value (default behavior)
+
+Invalid library names are logged and skipped. If all names are invalid, the node returns an error status.
+
+### Data Merging
+
+`bridge_node._gather_multi_library_data()` iterates the resolved library names. For each library, it sets the `_request_library` context variable, then collects:
+
+- **Elements** via `elements.get_all()`
+- **Archetypes** via `archetypes.get_all()`
+- **Style contexts** via `style_profile.get_style_context(genre)`
+
+All elements and archetypes are concatenated into flat lists. Style contexts are collected per genre.
+
+### Wrapper Stores
+
+Three duck-typed wrapper classes present the merged data with the same interface as the real store modules, so `generator.generate_prompt()` works unchanged:
+
+| Wrapper | Interface | Purpose |
+|---------|-----------|---------|
+| `_MergedElementStore` | `get_all()`, `count()`, `get_library_version()` | Merged element pool |
+| `_MergedArchetypeStore` | `get_all()`, `get_by_id()`, `get_by_name()`, `get_names()` | Merged archetype pool |
+| `_MergedStyleProfile` | `get_style_context(genre)` | Picks one style context at random from all libraries using the seed |
+
+### Cache Key
+
+A composite version string `"multi:LibA=5_10|LibB=3_8"` (encoding element count and archetype count per library) is used as the library version for cache key computation, preventing false cache hits between single-library and multi-library generations.
+
+---
+
 ## Style Profiles
 
 **Module:** `server/core/style_profile.py`
@@ -633,6 +684,41 @@ Rebuild is also triggered automatically when:
 - A photo is deleted
 - An element is deleted
 - An element's tags are edited
+
+---
+
+## Library Export & Import
+
+**Modules:** `server/plugins/export/export.py`, `server/plugins/export/_import.py`
+
+Libraries can be exported as `.p808` files (zip archives) for backup or sharing, and imported to create new libraries.
+
+### Export
+
+`POST /prompt808/api/library/export` creates a `.p808` zip file containing:
+
+| File | Contents |
+|------|----------|
+| `metadata.json` | Library name, export timestamp, format version, element/archetype/vocabulary counts |
+| `elements.json` | All elements with JSON columns parsed to native objects |
+| `archetypes.json` | All archetypes |
+| `vocabulary.json` | Tag vocabulary with canonical forms and aliases |
+| `style_profiles.json` | Per-genre style profiles |
+| `thumbnails/` | Photo thumbnail images (optional) |
+
+### Import
+
+`POST /prompt808/api/library/import` accepts a multipart upload of one or more `.p808` files. For each file:
+
+1. **Name deduplication** — If a library with the same name exists, appends `(2)`, `(3)`, etc. (up to 50-char limit)
+2. **Format validation** — Checks format version (currently `v1`) and required metadata fields
+3. **Column whitelist** — Only accepts known columns per table, rejecting unexpected data
+4. **Row validation** — Ensures required fields are present and JSON columns are well-formed
+5. **Referential integrity** — Removes dangling `element_ids` references in archetypes
+6. **Security** — Rejects thumbnail paths with directory traversal attempts
+7. **Conflict resolution** — Uses `INSERT OR REPLACE` for idempotent re-imports
+
+The sidebar import picker supports selecting multiple `.p808` files at once for batch import.
 
 ---
 
@@ -764,14 +850,16 @@ Analysis models (vision, CLIP, sentence-transformer) can be unloaded via `POST /
 ```
 Prompt808/                        # ComfyUI custom node
 ├── __init__.py                   # Node registration, route registration, library initialization
-├── bridge_node.py                # Prompt808Generate node (all settings as inputs)
+├── bridge_node.py                # Generate Prompt node (all settings as inputs)
+├── library_select_node.py        # Select Libraries node (multi-library selection)
 ├── pyproject.toml                # ComfyUI node metadata
 ├── models.json                   # Model registry (text + vision models)
 ├── requirements.txt              # Python dependencies
 ├── js/                           # Frontend (vanilla JS, loaded by ComfyUI)
 │   ├── prompt808.js              # Sidebar panel registration, tab navigation, library switcher
 │   ├── prompt808.css             # All styles
-│   ├── prompt808_bridge.js       # Node UI extension (Refresh Options button)
+│   ├── prompt808_bridge.js       # Generate node UI (dropdown refresh, library widget auto-hide)
+│   ├── prompt808_library_select.js  # Select Libraries node UI (dynamic slots, toggle widgets)
 │   ├── api.js                    # API client (X-Library header, all endpoints)
 │   ├── utils.js                  # DOM helpers ($el, toast, spinner, helpButton)
 │   ├── analyze.js                # Analyze tab (image upload, vision model selection)
@@ -799,7 +887,10 @@ Prompt808/                        # ComfyUI custom node
 │   │   ├── elements.py           # Element CRUD
 │   │   ├── archetypes.py         # Archetype CRUD
 │   │   └── vocabulary.py         # Tag vocabulary management
-│   └── plugins/                  # Plugin architecture
+│   └── plugins/                  # Pluggable extensions
+│       └── export/               # Library export/import
+│           ├── export.py         # Export library to .p808 zip file
+│           └── _import.py        # Import .p808 zip into new library
 └── user_data/                    # Per-user persistent data (auto-created)
     ├── prompt808.db              # SQLite database (all libraries, elements, caches)
     └── libraries/                # Per-library disk data
@@ -827,7 +918,7 @@ All endpoints are registered on ComfyUI's PromptServer under `/prompt808/api/*`.
 | ------ | ---------------------------------- | ------------------------------------------------------- |
 | GET    | `/prompt808/api/generate/options`  | Available styles, moods, archetypes, and text models    |
 
-Generation is handled directly by the `Prompt808 Generate` node via `bridge_node.py`, not through HTTP endpoints.
+Generation is handled directly by the Generate Prompt node via `bridge_node.py`, not through HTTP endpoints.
 
 ### Libraries
 
@@ -857,6 +948,13 @@ Generation is handled directly by the `Prompt808 Generate` node via `bridge_node
 | GET    | `/prompt808/api/library/photos/{thumbnail}/elements` | Get elements for a specific photo                                        |
 | DELETE | `/prompt808/api/library/photos/{thumbnail}`          | Delete photo + all associated elements, archetypes, and style profiles   |
 | DELETE | `/prompt808/api/library/reset`                       | Reset all data in the active library                                     |
+
+### Export & Import
+
+| Method | Endpoint                          | Description                                                    |
+| ------ | --------------------------------- | -------------------------------------------------------------- |
+| POST   | `/prompt808/api/library/export`   | Export active library as `.p808` zip file (binary download)    |
+| POST   | `/prompt808/api/library/import`   | Import `.p808` file (multipart upload, creates a new library)  |
 
 ### Style Profiles
 

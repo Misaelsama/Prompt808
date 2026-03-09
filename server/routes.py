@@ -127,7 +127,7 @@ if _HAS_PROMPT_SERVER:
             return {
                 "prompt_types": get_available_styles(nsfw=nsfw),
                 "moods": get_available_moods(nsfw=nsfw),
-                "archetypes": ["Any"] + archetypes.get_names(),
+                "archetypes": ["Any", "None"] + archetypes.get_names(),
                 "models": get_model_names(),
             }
 
@@ -769,7 +769,8 @@ if _HAS_PROMPT_SERVER:
 
         name, result = await asyncio.to_thread(_sync)
         if isinstance(result, dict):
-            return web.json_response(result)
+            status = 400 if result.get("status") == "error" else 200
+            return web.json_response(result, status=status)
         # result is bytes — send as file download
         return web.Response(
             body=result,
@@ -811,6 +812,8 @@ if _HAS_PROMPT_SERVER:
             if name.strip():
                 target_name = name.strip()
         result = await asyncio.to_thread(handle_import, file_data, target_name)
+        if isinstance(result, dict) and result.get("status") == "error":
+            return web.json_response(result, status=400)
         return web.json_response(result)
 
     # -----------------------------------------------------------------------
@@ -865,7 +868,7 @@ def _unload_comfy_models():
         import comfy.model_management
         comfy.model_management.unload_all_models()
         comfy.model_management.soft_empty_cache()
-        log.info("Unloaded all ComfyUI models (sidebar VRAM reclaim)")
+        log.debug("Unloaded all ComfyUI models (sidebar VRAM reclaim)")
     except ImportError:
         pass
 

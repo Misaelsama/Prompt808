@@ -9,13 +9,16 @@ log = logging.getLogger("prompt808")
 
 # --- Node registration ---
 from .bridge_node import Prompt808Generate  # noqa: E402
+from .library_select_node import Prompt808LibrarySelect  # noqa: E402
 
 NODE_CLASS_MAPPINGS = {
     "Prompt808 Generate": Prompt808Generate,
+    "Prompt808 Library Select": Prompt808LibrarySelect,
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "Prompt808 Generate": "Prompt808 Generate",
+    "Prompt808 Generate": "Generate Prompt",
+    "Prompt808 Library Select": "Select Libraries",
 }
 
 WEB_DIRECTORY = "./js"

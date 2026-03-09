@@ -6,13 +6,14 @@ are exposed as node inputs so they are visible in the workflow graph.
 
 import json
 import logging
+import random
 
 log = logging.getLogger("prompt808.node")
 
 PROMPT_TYPES = ["Any", "Native", "Photo-Architectural", "Photo-Boudoir", "Photo-Cinematic",
                 "Photo-Documentary", "Photo-Erotica", "Photo-Fashion", "Photo-Fine Art",
                 "Photo-Portrait", "Photo-Street"]
-MOODS = ["Any", "Dramatic", "Elegant", "Ethereal", "Gritty", "Melancholic",
+MOODS = ["Any", "None", "Dramatic", "Elegant", "Ethereal", "Gritty", "Melancholic",
          "Mysterious", "Provocative", "Romantic", "Sensual", "Serene"]
 QUANTIZATIONS = ["FP16", "FP8", "8-bit", "4-bit"]
 ENRICHMENTS = ["Any", "Baseline", "Vivid", "Expressive", "Poetic", "Lyrical", "Freeform"]
@@ -35,7 +36,7 @@ class Prompt808Generate:
     @classmethod
     def INPUT_TYPES(cls):
         library_list = ["(no libraries)"]
-        archetype_list = ["Any"]
+        archetype_list = ["Any", "None"]
         model_list = ["None"]
 
         try:
@@ -49,19 +50,19 @@ class Prompt808Generate:
                 libs = []
 
         if libs:
-            library_list = [lib["name"] for lib in libs]
-            active_lib = next((lib["name"] for lib in libs if lib.get("active")), library_list[0])
+            library_list = ["All"] + [lib["name"] for lib in libs]
+            active_lib = next((lib["name"] for lib in libs if lib.get("active")), library_list[1])
         else:
             library_list = ["(no libraries)"]
             active_lib = library_list[0]
 
         try:
             from .server.store import archetypes as arch_store
-            archetype_list = ["Any"] + arch_store.get_names()
+            archetype_list = ["Any", "None"] + arch_store.get_names()
         except Exception:
             try:
                 from server.store import archetypes as arch_store
-                archetype_list = ["Any"] + arch_store.get_names()
+                archetype_list = ["Any", "None"] + arch_store.get_names()
             except Exception:
                 pass
 
@@ -95,15 +96,11 @@ class Prompt808Generate:
         moods = MOODS if nsfw else [m for m in MOODS if m not in ("Sensual", "Provocative")]
 
         return {
-            "required": {
-                "seed": ("INT", {
-                    "default": 0,
-                    "min": 0,
-                    "max": 0xFFFFFFFF,
-                    "tooltip": "Random seed for deterministic generation",
-                }),
-            },
+            "required": {},
             "optional": {
+                "libraries": ("P808_LIBRARIES", {
+                    "tooltip": "Connect a Library Select node for multi-library generation",
+                }),
                 "library": (library_list, {
                     "default": active_lib,
                     "tooltip": "Library to generate from" if libs else "No libraries — open the Prompt808 sidebar (camera icon) to create one",
@@ -158,6 +155,12 @@ class Prompt808Generate:
                     "default": "",
                     "tooltip": "Text appended to the generated prompt (e.g. quality tags)",
                 }),
+                "seed": ("INT", {
+                    "default": 0,
+                    "min": 0,
+                    "max": 0xFFFFFFFF,
+                    "tooltip": "Random seed for deterministic generation",
+                }),
             },
         }
 
@@ -169,54 +172,48 @@ class Prompt808Generate:
     def IS_CHANGED(cls, **kwargs):
         return float("nan")  # Always re-execute
 
-    def generate(self, seed, library="(no libraries)", prompt_type="Any",
-                 archetype="Any", mood="Any", llm_model="None",
-                 enrichment="Vivid", quantization="FP16",
+    def generate(self, seed=0, libraries=None, library="(no libraries)",
+                 prompt_type="Any", archetype="Any", mood="Any",
+                 llm_model="None", enrichment="Any", quantization="FP16",
                  temperature=0.7, max_tokens=1024, keep_model_loaded=False,
                  prefix="", suffix=""):
         """Generate a prompt using node inputs."""
-        # Scope to the selected library
-        token = None
-        if library and library != "(no libraries)":
-            try:
-                try:
-                    from .server.core import library_manager
-                except ImportError:
-                    from server.core import library_manager
-                token = library_manager._request_library.set(library)
-            except Exception as e:
-                log.warning("Failed to scope library '%s': %s", library, e)
-
-        # Check if any library exists
         try:
-            try:
-                from .server.core import library_manager as _lm
-            except ImportError:
-                from server.core import library_manager as _lm
-            if _lm.get_active() is None:
-                msg = "No library exists \u2014 open the Prompt808 sidebar (camera icon) and create one first"
-                log.warning(msg)
-                return ("", "", msg)
-        except Exception as e:
-            log.warning("Failed to check library state: %s", e)
+            from .server.core import library_manager
+        except ImportError:
+            from server.core import library_manager
+
+        # Resolve which libraries to use
+        selected_libraries = self._resolve_libraries(
+            libraries, library, library_manager,
+        )
+        if isinstance(selected_libraries, tuple):
+            return selected_libraries  # early-exit error
+
+        multi = len(selected_libraries) > 1
+        library_display = ", ".join(selected_libraries) if multi else selected_libraries[0]
+
+        # Scope to first library for single-library path and cache/style fallback
+        token = library_manager._request_library.set(selected_libraries[0])
 
         try:
-            # Pre-flight: check element count
-            try:
+            # Pre-flight: check element count (for single-library; multi checks inside)
+            if not multi:
                 try:
-                    from .server.store import elements
-                except ImportError:
-                    from server.store import elements
-                count = elements.count()
-            except Exception as e:
-                log.warning("Failed to check element count: %s", e)
-                count = -1  # can't determine — let generation proceed
-
-            if count == 0:
-                msg = "Library is empty \u2014 open the Prompt808 sidebar and analyze some images first"
-                log.warning(msg)
-                prompt = prefix.strip() if prefix else ""
-                return (prompt, "", msg)
+                    try:
+                        from .server.store import elements
+                    except ImportError:
+                        from server.store import elements
+                    count = elements.count()
+                except Exception as e:
+                    log.warning("Failed to check element count: %s", e)
+                    count = -1
+                if count == 0:
+                    msg = "Library is empty \u2014 open the Prompt808 sidebar and analyze some images first"
+                    log.warning(msg)
+                    parts = [p for p in [prefix.strip() if prefix else "",
+                                         suffix.strip() if suffix else ""] if p]
+                    return (" ".join(parts), "", msg)
 
             result = self._generate_native(
                 seed=seed,
@@ -231,14 +228,21 @@ class Prompt808Generate:
                 keep_model_loaded=keep_model_loaded,
                 prefix=prefix,
                 suffix=suffix,
+                multi_libraries=selected_libraries if multi else None,
             )
 
             # Build status line
-            status_parts = [result.get("status", "ok")]
-            status_parts.append(f"archetype: {result.get('archetype_used', 'unknown')}")
-            status_parts.append(f"elements: {len(result.get('elements_used', []))}")
-            status_parts.append(f"seed: {result.get('seed', seed)}")
-            status = " | ".join(status_parts)
+            model_display = llm_model if llm_model and llm_model != "None" else "None"
+            status = "\n".join([
+                f"library: {library_display}",
+                f"style: {result.get('style_used', 'unknown')}",
+                f"archetype: {result.get('archetype_used', 'unknown')}",
+                f"mood: {result.get('mood_used', 'unknown')}",
+                f"model: {model_display}",
+                f"enrichment: {result.get('enrichment_used', 'unknown')}",
+                f"elements: {len(result.get('elements_used', []))}",
+                f"seed: {result.get('seed', seed)}",
+            ])
 
             return (result.get("prompt", ""), result.get("negative_prompt", ""), status)
         except Exception as e:
@@ -246,19 +250,57 @@ class Prompt808Generate:
             log.error(error_msg, exc_info=True)
             return ("", "", f"ERROR: {error_msg}")
         finally:
-            if token is not None:
-                try:
-                    try:
-                        from .server.core import library_manager
-                    except ImportError:
-                        from server.core import library_manager
-                    library_manager._request_library.reset(token)
-                except Exception as e:
-                    log.warning("Failed to reset library scope: %s", e)
+            library_manager._request_library.reset(token)
+
+    # ------------------------------------------------------------------
+    # Library resolution
+    # ------------------------------------------------------------------
+
+    @staticmethod
+    def _resolve_libraries(libraries, library, library_manager):
+        """Return a list of library names to generate from.
+
+        ``libraries`` comes from the Library Select node (or ``None``).
+        ``library`` comes from the dropdown widget.
+        Returns a list of names, or a 3-tuple error to return early.
+        """
+        if library_manager.get_active() is None:
+            msg = ("No library exists \u2014 open the Prompt808 sidebar "
+                   "(camera icon) and create one first")
+            log.warning(msg)
+            return ("", "", msg)
+
+        # Library Select node connected — takes priority
+        if libraries is not None:
+            valid = []
+            all_libs = {lib["name"] for lib in library_manager.list_libraries()}
+            for name in libraries:
+                if name in all_libs:
+                    valid.append(name)
+                else:
+                    log.warning("Library '%s' not found, skipping", name)
+            if not valid:
+                return ("", "", "All selected libraries are invalid or empty")
+            return valid
+
+        # "All" option in dropdown
+        if library == "All":
+            all_libs = library_manager.list_libraries()
+            names = [lib["name"] for lib in all_libs]
+            if not names:
+                return ("", "", "No libraries exist")
+            return names
+
+        # Single library from dropdown
+        if library and library != "(no libraries)":
+            return [library]
+
+        return ("", "", "No library selected")
 
     def _generate_native(self, seed, prompt_type, archetype, mood, llm_model,
                          enrichment, quantization, temperature, max_tokens,
-                         keep_model_loaded, prefix, suffix):
+                         keep_model_loaded, prefix, suffix,
+                         multi_libraries=None):
         """Direct Python call into the generation pipeline."""
         try:
             from .server.core import generator, model_manager, style_profile
@@ -296,6 +338,16 @@ class Prompt808Generate:
         # Strip display prefix (e.g. "Photo-Cinematic" → "Cinematic")
         style = prompt_type[6:] if prompt_type.startswith("Photo-") else prompt_type
 
+        # Resolve stores — merged wrappers for multi-library, real modules otherwise
+        if multi_libraries:
+            elem_store, arch_store, style_mod = _gather_multi_library_data(
+                multi_libraries, elements, archetypes, style_profile, seed,
+            )
+        else:
+            elem_store = elements
+            arch_store = archetypes
+            style_mod = style_profile
+
         result = generator.generate_prompt(
             seed=seed,
             archetype_id=archetype,
@@ -307,9 +359,9 @@ class Prompt808Generate:
             temperature=float(temperature),
             max_tokens=int(max_tokens),
             model_manager=model_manager,
-            element_store=elements,
-            archetype_store=archetypes,
-            style_profile_module=style_profile,
+            element_store=elem_store,
+            archetype_store=arch_store,
+            style_profile_module=style_mod,
             debug=False,
             nsfw=nsfw,
         )
@@ -337,3 +389,107 @@ class Prompt808Generate:
             pbar.update_absolute(4, 4)
 
         return result
+
+
+# ------------------------------------------------------------------
+# Multi-library merging
+# ------------------------------------------------------------------
+
+class _MergedElementStore:
+    """Duck-typed element store backed by pre-merged data."""
+
+    def __init__(self, all_elements, version_str):
+        self._elements = all_elements
+        self._version = version_str
+
+    def get_all(self):
+        return self._elements
+
+    def count(self):
+        return len(self._elements)
+
+    def get_library_version(self):
+        return self._version
+
+
+class _MergedArchetypeStore:
+    """Duck-typed archetype store backed by pre-merged data."""
+
+    def __init__(self, all_archetypes):
+        self._archetypes = all_archetypes
+
+    def get_all(self):
+        return self._archetypes
+
+    def get_by_id(self, archetype_id):
+        return next(
+            (a for a in self._archetypes if a["id"] == archetype_id), None,
+        )
+
+    def get_by_name(self, name):
+        return next(
+            (a for a in self._archetypes if a.get("name") == name), None,
+        )
+
+    def get_names(self):
+        return [a.get("name") or a.get("id") for a in self._archetypes]
+
+
+class _MergedStyleProfile:
+    """Duck-typed style profile module that picks randomly from all libraries."""
+
+    def __init__(self, contexts, seed):
+        self._contexts = contexts  # {genre: [context_str, ...]}
+        self._seed = seed
+
+    def get_style_context(self, genre, max_traits=5):
+        available = [c for c in self._contexts.get(genre, []) if c]
+        if not available:
+            return ""
+        rng = random.Random(self._seed + 4)
+        return rng.choice(available)
+
+
+def _gather_multi_library_data(library_names, elements_mod, archetypes_mod,
+                                style_profile_mod, seed):
+    """Gather and merge data from multiple libraries.
+
+    Returns (element_store, archetype_store, style_profile_module) wrappers.
+    """
+    try:
+        from .server.core import library_manager
+    except ImportError:
+        from server.core import library_manager
+
+    all_elements = []
+    all_archetypes = []
+    version_parts = []
+    style_contexts = {}  # genre -> [context_str, ...]
+
+    for lib_name in sorted(library_names):
+        token = library_manager._request_library.set(lib_name)
+        try:
+            lib_elements = elements_mod.get_all()
+            all_elements.extend(lib_elements)
+
+            lib_archetypes = archetypes_mod.get_all()
+            all_archetypes.extend(lib_archetypes)
+
+            lib_version = elements_mod.get_library_version()
+            version_parts.append(f"{lib_name}={lib_version}")
+
+            # Collect style contexts for all genres in this library
+            for genre in style_profile_mod.get_all_genres():
+                ctx = style_profile_mod.get_style_context(genre)
+                if ctx:
+                    style_contexts.setdefault(genre, []).append(ctx)
+        finally:
+            library_manager._request_library.reset(token)
+
+    version_str = "multi:" + "|".join(version_parts)
+
+    return (
+        _MergedElementStore(all_elements, version_str),
+        _MergedArchetypeStore(all_archetypes),
+        _MergedStyleProfile(style_contexts, seed),
+    )

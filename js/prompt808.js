@@ -224,33 +224,49 @@ function _renderLibSwitcher() {
   const importInput = $el("input", {
     type: "file",
     accept: ".p808",
+    multiple: true,
     style: { display: "none" },
     onChange: async (e) => {
-      const file = e.target.files?.[0];
-      if (!file) return;
-      try {
-        const result = await api.importLibrary(file);
-        if (result.status === "error") {
-          toast(result.message, "error");
-        } else {
-          const counts = result.imported || {};
-          const total = Object.values(counts).reduce((sum, v) => {
-            if (typeof v === "number") return sum + v;
-            return sum + (v.inserted || 0) + (v.replaced || 0);
-          }, 0);
-          let msg = `Imported "${result.library_name}" (${total} records, ${result.thumbnails || 0} thumbnails)`;
-          if (result.warnings?.length) {
-            msg += ` — ${result.warnings.length} warning(s)`;
-            console.warn("Import warnings:", result.warnings);
+      const files = Array.from(e.target.files || []);
+      if (!files.length) return;
+      let totalRecords = 0;
+      let totalThumbs = 0;
+      const imported = [];
+      const errors = [];
+      for (const file of files) {
+        try {
+          const result = await api.importLibrary(file);
+          if (result.status === "error") {
+            errors.push(`${file.name}: ${result.message}`);
+          } else {
+            const counts = result.imported || {};
+            const total = Object.values(counts).reduce((sum, v) => {
+              if (typeof v === "number") return sum + v;
+              return sum + (v.inserted || 0) + (v.replaced || 0);
+            }, 0);
+            totalRecords += total;
+            totalThumbs += result.thumbnails || 0;
+            imported.push(result.library_name);
+            if (result.warnings?.length) {
+              console.warn(`Import warnings for "${result.library_name}":`, result.warnings);
+            }
           }
-          toast(msg, "success");
-          await refreshLibraries();
-          invalidateData();
-          notifyNodeRefresh();
-          _switchTab(_activeTab);
+        } catch (err) {
+          errors.push(`${file.name}: ${err.message}`);
         }
-      } catch (err) {
-        toast("Import failed: " + err.message, "error");
+      }
+      if (imported.length) {
+        const names = imported.map(n => `"${n}"`).join(", ");
+        toast(`Imported ${names} (${totalRecords} records, ${totalThumbs} thumbnails)`, "success");
+      }
+      for (const err of errors) {
+        toast("Import failed: " + err, "error");
+      }
+      if (imported.length) {
+        await refreshLibraries();
+        invalidateData();
+        notifyNodeRefresh();
+        _switchTab(_activeTab);
       }
       importInput.value = "";
     },

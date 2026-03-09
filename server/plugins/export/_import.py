@@ -31,8 +31,6 @@ _VALID_COLUMNS = {
                        "last_updated"},
     "embeddings_cache": {"element_id", "library_id", "embedding"},
     "image_embeddings_cache": {"content_hash", "library_id", "embedding"},
-    "prompt_cache": {"cache_key", "library_id", "prompt", "negative_prompt",
-                     "seed", "archetype_id", "style"},
 }
 
 # Required fields per table — rows missing these are skipped.
@@ -42,7 +40,6 @@ _REQUIRED_FIELDS = {
     "archetypes": ["id"],
     "vocabulary": ["canonical"],
     "style_profiles": ["genre"],
-    "prompt_cache": ["cache_key"],
 }
 
 # Primary key columns per table (excluding library_id which is always set).
@@ -51,7 +48,6 @@ _PRIMARY_KEYS = {
     "archetypes": ["id"],
     "vocabulary": ["canonical"],
     "style_profiles": ["genre"],
-    "prompt_cache": ["cache_key"],
     "embeddings_cache": ["element_id"],
     "image_embeddings_cache": ["content_hash"],
 }
@@ -109,12 +105,23 @@ def handle_import(file_data, target_library_name=None):
     """
     from ...core import database, library_manager
 
+    # Size guard — reject archives that would expand beyond 2 GB
+    _MAX_UNCOMPRESSED = 2 * 1024 * 1024 * 1024
+    _MAX_FILES = 10_000
+
     try:
         zf = zipfile.ZipFile(io.BytesIO(file_data))
     except zipfile.BadZipFile:
         return {"status": "error", "message": "Invalid .p808 file (not a valid zip)"}
 
     with zf:
+        total_size = sum(info.file_size for info in zf.infolist())
+        if total_size > _MAX_UNCOMPRESSED:
+            return {"status": "error",
+                    "message": f"Archive too large ({total_size / 1024 / 1024:.0f} MB uncompressed, limit 2 GB)"}
+        if len(zf.namelist()) > _MAX_FILES:
+            return {"status": "error",
+                    "message": f"Archive has too many files ({len(zf.namelist())}, limit {_MAX_FILES})"}
         # Read metadata
         try:
             meta_raw = zf.read("metadata.json")
@@ -360,7 +367,6 @@ def _check_referential_integrity(db, lib_id):
     """Check referential integrity after import and fix issues.
 
     - archetypes.element_ids: remove references to non-existent elements
-    - prompt_cache.archetype_id: warn about non-existent archetypes
 
     Returns:
         List of warning strings.
@@ -403,29 +409,6 @@ def _check_referential_integrity(db, lib_id):
         warnings.append(
             f"archetypes: {total_cleaned} element_ids reference(s) cleaned "
             f"(elements not found)"
-        )
-
-    # Check prompt_cache archetype_id (warn only, don't modify)
-    archetype_rows = db.execute(
-        "SELECT id FROM archetypes WHERE library_id=?", (lib_id,)
-    ).fetchall()
-    archetype_ids = {r["id"] for r in archetype_rows}
-
-    cache_rows = db.execute(
-        "SELECT cache_key, archetype_id FROM prompt_cache WHERE library_id=?",
-        (lib_id,),
-    ).fetchall()
-
-    dangling_cache = 0
-    for cr in cache_rows:
-        aid = cr["archetype_id"]
-        if aid and aid != "Any" and aid not in archetype_ids:
-            dangling_cache += 1
-
-    if dangling_cache:
-        warnings.append(
-            f"prompt_cache: {dangling_cache} row(s) reference non-existent "
-            f"archetype_id"
         )
 
     return warnings

@@ -10,8 +10,9 @@ Prompt808 learns from your images. Drop in reference photos or artwork, and a vi
 
 - **Learns from your images** — A vision model analyzes each upload and extracts structured scene elements into a growing library
 - **Multiple prompt styles** — Cinematic, Fine Art, Fashion, Documentary, Portrait, Street, Architectural, and more
-- **LLM-powered composition** — Natural-language prompts with six enrichment levels from faithful reproduction to full creative freedom
-- **Multi-library support** — Maintain separate libraries for different projects or genres, each fully isolated
+- **LLM-powered composition** — Natural-language prompts with seven enrichment levels from faithful reproduction to full creative freedom
+- **Multi-library generation** — Combine elements from multiple libraries in a single generation using the Select Libraries node, or select "All" for every library at once
+- **Library management** — Maintain separate libraries for different projects or genres, each fully isolated. Export and import libraries as `.p808` files for backup or sharing
 - **ComfyUI native** — Sidebar panel for interactive use, plus a workflow node for automated generation
 - **Medium-aware** — Automatically detects whether an image is a photograph, painting, illustration, or 3D render, and adjusts extraction accordingly
 
@@ -64,19 +65,30 @@ The **Photos** tab displays thumbnails of all analyzed images. Click a photo to 
 
 ### 4. Generate prompts
 
-Add a **Prompt808 Generate** node to your ComfyUI workflow. All generation settings are exposed as node inputs — style, mood, archetype, LLM model, temperature, and more.
+Add a **Generate Prompt** node to your ComfyUI workflow. All generation settings are exposed as node inputs — library, style, mood, archetype, LLM model, enrichment, temperature, and more.
 
 ![Node in workflow](docs/screenshots/node-workflow.png)
 
-### 5. Multi-library workflow
+### 5. Manage libraries
 
 Use the library dropdown and action buttons at the top of the sidebar to:
 
 - **Switch** between libraries (each has its own elements, archetypes, style profiles, and dedup caches)
 - **Create** new libraries with the **+** button
-- **Rename**, **delete**, **export**, or **import** libraries
+- **Rename** or **delete** libraries
+- **Export** a library as a `.p808` file for backup or sharing
+- **Import** one or more `.p808` files to add libraries from others
 
 Libraries are fully isolated — the same image can exist in different libraries with different extracted elements.
+
+### 6. Multi-library generation
+
+To generate prompts that draw from multiple libraries at once:
+
+- **Quick method** — Select **"All"** in the Generate Prompt node's library dropdown to use every library.
+- **Fine-grained control** — Add a **Select Libraries** node. Each slot has a library dropdown and an on/off toggle. Click **"+ Add Library"** to add more slots. Connect its `libraries` output to the Generate Prompt node — the library dropdown auto-hides when connected.
+
+When multiple libraries are selected, their elements, archetypes, and style profiles are merged into a virtual combined pool for generation.
 
 ## Models
 
@@ -120,6 +132,7 @@ FP8 variants of Qwen3 models (0.6B through 32B) are also available. Models are d
 
 | Level      | Fidelity | Creativity | Description                                                   |
 | ---------- | -------- | ---------- | ------------------------------------------------------------- |
+| Any        | —        | —          | Picks a random enrichment level per generation                |
 | Baseline   | High     | Low        | Vivid photographic phrases, preserves original meaning        |
 | Vivid      | High     | Low-Med    | Adds sensory and textural detail                              |
 | Expressive | Medium   | Medium     | Evocative mood and atmosphere                                 |

@@ -286,11 +286,28 @@ def generate_prompt(seed, archetype_id="Any", style="Any", mood="Any",
         enrichment_rng = random.Random(seed + 1)
         enrichment = enrichment_rng.choice(list(ENRICHMENT_LEVELS.keys()))
 
+    # Resolve "Any" mood to a concrete one (or None) using the seed
+    if mood == "Any":
+        available_moods = ["None"] + sorted(MOOD_MODIFIERS.keys())
+        if not nsfw:
+            available_moods = [m for m in available_moods if m not in ("Sensual", "Provocative")]
+        mood_rng = random.Random(seed + 2)
+        mood = mood_rng.choice(available_moods)
+
+    # Resolve "Any" archetype to a concrete one (or None) using the seed
+    if archetype_id == "Any" and archetype_store:
+        all_archetypes = archetype_store.get_all()
+        if all_archetypes:
+            archetype_rng = random.Random(seed + 3)
+            choices = [None] + all_archetypes
+            picked = archetype_rng.choice(choices)
+            archetype_id = picked.get("id", "None") if picked else "None"
+
     # Resolve archetype name early (needed for both cache hit and miss paths)
     archetype = None
-    archetype_name = "Any"
+    archetype_name = "None"
 
-    if archetype_id != "Any" and archetype_store:
+    if archetype_id != "None" and archetype_store:
         archetype = archetype_store.get_by_id(archetype_id)
         if not archetype:
             archetype = archetype_store.get_by_name(archetype_id)
@@ -313,6 +330,9 @@ def generate_prompt(seed, archetype_id="Any", style="Any", mood="Any",
             "prompt": prompt_text,
             "negative_prompt": negative_text,
             "archetype_used": archetype_name,
+            "style_used": style,
+            "enrichment_used": enrichment,
+            "mood_used": mood,
             "elements_used": [],
             "status": "cache_hit",
         }
@@ -324,6 +344,9 @@ def generate_prompt(seed, archetype_id="Any", style="Any", mood="Any",
             "prompt": "",
             "negative_prompt": SAFETY_NEGATIVES,
             "archetype_used": "none",
+            "style_used": style,
+            "enrichment_used": enrichment,
+            "mood_used": mood,
             "elements_used": [],
             "status": "empty_library",
         }
@@ -378,7 +401,7 @@ def generate_prompt(seed, archetype_id="Any", style="Any", mood="Any",
             log.warning("Archetype '%s' matched only %d elements, using all",
                         archetype_name, len(selected_elements))
             selected_elements = all_elements
-            archetype_name = "Any (fallback)"
+            archetype_name = "None (fallback)"
 
     # Step 4: Seeded random selection of elements per category
     rng = random.Random(seed)
@@ -389,6 +412,9 @@ def generate_prompt(seed, archetype_id="Any", style="Any", mood="Any",
             "prompt": "",
             "negative_prompt": SAFETY_NEGATIVES,
             "archetype_used": archetype_name,
+            "style_used": style,
+            "enrichment_used": enrichment,
+            "mood_used": mood,
             "elements_used": [],
             "status": "no_elements_selected",
         }
@@ -430,6 +456,9 @@ def generate_prompt(seed, archetype_id="Any", style="Any", mood="Any",
         "prompt": prompt_text,
         "negative_prompt": negative_text,
         "archetype_used": archetype_name,
+        "style_used": style,
+        "enrichment_used": enrichment,
+        "mood_used": mood,
         "elements_used": element_ids,
         "status": "ok",
     }
@@ -563,7 +592,7 @@ def _llm_compose(chosen_elements, style, mood, archetype, seed,
 
     # Mood modifier
     mood_clause = ""
-    if mood and mood != "Any" and mood in MOOD_MODIFIERS:
+    if mood and mood != "None" and mood in MOOD_MODIFIERS:
         mood_clause = f"\nMood direction: {MOOD_MODIFIERS[mood]}"
 
     # Scene context for Freeform mode (needs_scene_context)
@@ -702,7 +731,7 @@ def _simple_compose(chosen_elements, style, mood, resolved_medium=None, rng=None
         parts.append(style_prefix.get(style, "photography,"))
 
     # 2. Mood
-    if mood and mood != "Any" and mood in MOOD_MODIFIERS:
+    if mood and mood != "None" and mood in MOOD_MODIFIERS:
         parts.append(mood.lower() + " atmosphere,")
 
     # 3. Sort elements by style priority, with seed-based variation
@@ -825,4 +854,4 @@ def get_available_moods(nsfw=False):
     moods = sorted(MOOD_MODIFIERS.keys())
     if not nsfw:
         moods = [m for m in moods if m not in ("Sensual", "Provocative")]
-    return ["Any"] + moods
+    return ["Any", "None"] + moods
